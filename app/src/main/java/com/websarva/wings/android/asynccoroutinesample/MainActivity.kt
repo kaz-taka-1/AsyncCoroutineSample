@@ -11,6 +11,10 @@ import android.widget.SimpleAdapter
 import android.widget.TextView
 import androidx.annotation.UiThread
 import androidx.annotation.WorkerThread
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStream
@@ -71,29 +75,35 @@ class MainActivity : AppCompatActivity() {
     }
     @UiThread
     private fun receiveWeatherInfo(urlFull:String){
+        lifecycleScope.launch{
+            val result = weatherInfoBackgroundRunner(urlFull)
+            weatherInfoPostRunner(result)
+        }
 
     }
     @WorkerThread
-    private fun weahterInfoBackgroundRunner(url:String):String{
-            var result =""
+    private suspend fun weatherInfoBackgroundRunner(url:String):String{
+        val returnVal =withContext(Dispatchers.IO) {
+            var result = ""
             val url = URL(url)
             val con = url.openConnection() as? HttpURLConnection
-            con?.let{
-                try{
-                    it.connectTimeout =1000
+            con?.let {
+                try {
+                    it.connectTimeout = 1000
                     it.readTimeout = 1000
                     it.requestMethod = "Get"
                     it.connect()
                     val stream = it.inputStream
                     result = is2String(stream)
                     stream.close()
-                }
-                catch(ex: SocketTimeoutException){
-                    Log.w(DEBUG_TAG,"通信タイムアウト",ex)
+                } catch (ex: SocketTimeoutException) {
+                    Log.w(DEBUG_TAG, "通信タイムアウト", ex)
                 }
                 it.disconnect()
             }
-           return result
+            result
+        }
+           return returnVal
     }
     private fun is2String(stream: InputStream):String{
         val sb = StringBuilder()
