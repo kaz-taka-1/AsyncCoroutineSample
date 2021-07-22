@@ -29,7 +29,8 @@ class MainActivity : AppCompatActivity() {
         private const val WEATHERINFO_URL = "https://api.openweathermap.org/data/2.5/weather?lang=jp"
         private const val APP_ID = "408a1035a7fabe1cceb261a10cab8ebe"
     }
-    private  var _list:MutableList<MutableMap<String,String>> = mutableListOf()
+    private var _list: MutableList<MutableMap<String, String>> = mutableListOf()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -37,12 +38,13 @@ class MainActivity : AppCompatActivity() {
         _list = createList()
 
         val lvCityList = findViewById<ListView>(R.id.lvCityList)
-        val from =arrayOf("name")
+        val from  = arrayOf("name")
         val to = intArrayOf(android.R.id.text1)
-        val adapter = SimpleAdapter(this@MainActivity,_list,android.R.layout.simple_list_item_1,from,to)
-        lvCityList.adapter=adapter
-        lvCityList.onItemClickListener=ListItemClickListener()
+        val adapter = SimpleAdapter(this@MainActivity, _list, android.R.layout.simple_list_item_1, from, to)
+        lvCityList.adapter = adapter
+        lvCityList.onItemClickListener = ListItemClickListener()
     }
+
     private fun createList():MutableList<MutableMap<String,String>> {
 
         var list:MutableList<MutableMap<String,String>> = mutableListOf()
@@ -63,24 +65,15 @@ class MainActivity : AppCompatActivity() {
 
         return list
     }
-    private inner class ListItemClickListener: AdapterView.OnItemClickListener{
-        override fun onItemClick(parent: AdapterView<*>, view: View, position:Int, id:Long){
-            val item = _list.get(position)
-            val q = item.get("q")
-            q?.let{
-                val urlFull = "$WEATHERINFO_URL&q=$q&appid=$APP_ID"
-                receiveWeatherInfo(urlFull)
-            }
-        }
-    }
     @UiThread
-    private fun receiveWeatherInfo(urlFull:String){
-        lifecycleScope.launch{
+    private fun receiveWeatherInfo(urlFull: String) {
+        lifecycleScope.launch {
             val result = weatherInfoBackgroundRunner(urlFull)
             weatherInfoPostRunner(result)
         }
-
     }
+
+
     @WorkerThread
     private suspend fun weatherInfoBackgroundRunner(url:String):String{
         val returnVal =withContext(Dispatchers.IO) {
@@ -91,7 +84,7 @@ class MainActivity : AppCompatActivity() {
                 try {
                     it.connectTimeout = 1000
                     it.readTimeout = 1000
-                    it.requestMethod = "Get"
+                    it.requestMethod = "GET"
                     it.connect()
                     val stream = it.inputStream
                     result = is2String(stream)
@@ -105,17 +98,7 @@ class MainActivity : AppCompatActivity() {
         }
            return returnVal
     }
-    private fun is2String(stream: InputStream):String{
-        val sb = StringBuilder()
-        val reader = BufferedReader(InputStreamReader(stream,"UTF-8"))
-        var line = reader.readLine()
-        while(line != null){
-            sb.append(line)
-            line = reader.readLine()
-        }
-        reader.close()
-        return sb.toString()
-    }
+
     @UiThread
     private fun weatherInfoPostRunner(result:String){
         val rootJSON = JSONObject(result)
@@ -133,6 +116,29 @@ class MainActivity : AppCompatActivity() {
         tvWeatherTelop.text = telop
         tvWeatherDesc.text = desc
 
+    }
+
+    private fun is2String(stream: InputStream): String {
+        val sb = StringBuilder()
+        val reader = BufferedReader(InputStreamReader(stream, "UTF-8"))
+        var line = reader.readLine()
+        while(line != null) {
+            sb.append(line)
+            line = reader.readLine()
+        }
+        reader.close()
+        return sb.toString()
+    }
+
+    private inner class ListItemClickListener: AdapterView.OnItemClickListener{
+        override fun onItemClick(parent: AdapterView<*>, view: View, position:Int, id:Long){
+            val item = _list.get(position)
+            val q = item.get("q")
+            q?.let{
+                val urlFull = "$WEATHERINFO_URL&q=$q&appid=$APP_ID"
+                receiveWeatherInfo(urlFull)
+            }
+        }
     }
 
 }
